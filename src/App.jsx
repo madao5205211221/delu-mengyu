@@ -5,6 +5,7 @@ import Anniversary from './pages/Anniversary.jsx'
 import Idea from './pages/Idea.jsx'
 import Settings from './pages/Settings.jsx'
 import { loadState, saveState } from './lib/storage.js'
+import { loadTheme, saveTheme, applyTheme } from './lib/theme.js'
 import { fmtFull, todayKey } from './lib/date.js'
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
 
 export default function App() {
   const [state, setState] = useState(loadState)
+  const [theme, setTheme] = useState(loadTheme)
   const [tab, setTab] = useState('today')
   const [showSettings, setShowSettings] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
@@ -24,6 +26,11 @@ export default function App() {
   useEffect(() => {
     saveState(state)
   }, [state])
+
+  useEffect(() => {
+    applyTheme(theme)
+    saveTheme(theme)
+  }, [theme])
 
   const update = (fn) => setState((prev) => fn(prev))
 
@@ -70,6 +77,8 @@ export default function App() {
           state={state}
           update={update}
           toast={toast}
+          theme={theme}
+          setTheme={setTheme}
           onClose={() => setShowSettings(false)}
         />
       )}

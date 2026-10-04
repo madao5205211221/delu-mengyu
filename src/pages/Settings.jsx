@@ -1,14 +1,16 @@
 import React, { useRef, useState } from 'react'
 import Sheet from '../components/Sheet.jsx'
+import ThemePicker from '../components/ThemePicker.jsx'
 import { Capacitor } from '@capacitor/core'
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
-import { exportText, parseImport, countAll, EMPTY } from '../lib/storage.js'
+import { exportText, parseImport, EMPTY } from '../lib/storage.js'
 import { todayKey } from '../lib/date.js'
 
-export default function Settings({ state, update, onClose, toast }) {
+export default function Settings({ state, update, onClose, toast, theme, setTheme }) {
   const fileRef = useRef(null)
   const [confirming, setConfirming] = useState(false)
+  const [panel, setPanel] = useState('backup')
 
   const doExport = async () => {
     const text = exportText(state)
@@ -66,49 +68,66 @@ export default function Settings({ state, update, onClose, toast }) {
   }
 
   return (
-    <Sheet title="设置与备份" onClose={onClose}>
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="card-title">
-          <span>现在存了这些</span>
-        </div>
-        <div className="meta">
-          回忆 {state.entries.length} 条 · 灵感 {state.ideas.length} 条 · 待办{' '}
-          {state.todos.length} 条 · 目标 {state.goals.length} 个 · 纪念日{' '}
-          {state.anniversaries.length} 个
-        </div>
+    <Sheet title={panel === 'theme' ? '换个配色' : '设置与备份'} onClose={onClose}>
+      <div className="seg">
+        <button
+          className={'seg-btn' + (panel === 'backup' ? ' on' : '')}
+          onClick={() => setPanel('backup')}
+        >
+          备份
+        </button>
+        <button
+          className={'seg-btn' + (panel === 'theme' ? ' on' : '')}
+          onClick={() => setPanel('theme')}
+        >
+          配色
+        </button>
       </div>
 
-      <div className="hint" style={{ marginBottom: 12 }}>
-        内容只存在这台手机里，不联网、不上传。卸载 App 或清理数据会全部丢失，
-        所以隔一阵子导一次备份。
-      </div>
+      {panel === 'theme' ? (
+        <ThemePicker theme={theme} onChange={setTheme} toast={toast} />
+      ) : (
+        <>
+          <div className="card" style={{ marginBottom: 14 }}>
+            <div className="card-title">
+              <span>现在存了这些</span>
+            </div>
+            <div className="meta">
+              回忆 {state.entries.length} 条 · 灵感 {state.ideas.length} 条 · 待办{' '}
+              {state.todos.length} 条 · 目标 {state.goals.length} 个 · 纪念日{' '}
+              {state.anniversaries.length} 个
+            </div>
+          </div>
 
-      <button className="btn" style={{ width: '100%', marginBottom: 10 }} onClick={doExport}>
-        导出备份（JSON 文件）
-      </button>
+          <div className="hint" style={{ marginBottom: 12 }}>
+            内容只存在这台手机里，不联网、不上传。卸载 App 或清理数据会全部丢失，
+            所以隔一阵子导一次备份。
+          </div>
 
-      <button
-        className="btn ghost"
-        style={{ width: '100%', marginBottom: 10 }}
-        onClick={() => fileRef.current?.click()}
-      >
-        从备份导入
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json,.json"
-        style={{ display: 'none' }}
-        onChange={doImport}
-      />
+          <button className="btn" style={{ width: '100%', marginBottom: 10 }} onClick={doExport}>
+            导出备份（JSON 文件）
+          </button>
 
-      <button
-        className="btn danger"
-        style={{ width: '100%' }}
-        onClick={clearAll}
-      >
-        清空全部内容
-      </button>
+          <button
+            className="btn ghost"
+            style={{ width: '100%', marginBottom: 10 }}
+            onClick={() => fileRef.current?.click()}
+          >
+            从备份导入
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: 'none' }}
+            onChange={doImport}
+          />
+
+          <button className="btn danger" style={{ width: '100%' }} onClick={clearAll}>
+            清空全部内容
+          </button>
+        </>
+      )}
     </Sheet>
   )
 }
