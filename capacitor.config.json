@@ -1,5 +1,11 @@
 {
   "appId": "com.madao.delumengyu",
   "appName": "得鹿梦鱼",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "StatusBar": {
+      "style": "LIGHT",
+      "overlaysWebView": true
+    }
+  }
 }

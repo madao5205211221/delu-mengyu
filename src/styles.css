@@ -28,6 +28,11 @@ body {
   max-width: 100%;
 }
 
+/* 状态栏 / 导航栏区域也铺纸色，避免和页面内容出现色带断层 */
+html {
+  background: var(--paper);
+}
+
 /* 宽内容一律不能把父级撑开，否则右侧会被切掉、底部导航会缺一格 */
 .card,
 .page,
@@ -78,10 +83,11 @@ textarea {
   min-height: 100vh;
   background: var(--paper);
   position: relative;
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  padding-bottom: calc(72px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
 }
 
-/* 顶栏 */
+/* 顶栏 —— Android 15 起 edge-to-edge 强制生效，必须让出状态栏高度。
+   两个来源取较大值：CSS 环境变量（iOS / 部分 WebView）+ 插件写入的 --safe-top */
 .topbar {
   position: sticky;
   top: 0;
@@ -90,7 +96,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 18px 10px;
+  padding: calc(14px + max(env(safe-area-inset-top, 0px), var(--safe-top, 0px))) 18px 10px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -590,7 +596,7 @@ textarea {
   max-width: 480px;
   background: var(--card);
   border-radius: 18px 18px 0 0;
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  padding: 18px 18px calc(18px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
   max-height: 82vh;
   overflow-y: auto;
 }
@@ -656,7 +662,7 @@ textarea {
   border-top: 1px solid var(--line);
   display: flex;
   z-index: 30;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px));
 }
 
 .tabbar-in {

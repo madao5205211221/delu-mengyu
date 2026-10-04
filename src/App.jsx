@@ -8,6 +8,7 @@ import { loadState, saveState } from './lib/storage.js'
 import { loadTheme, saveTheme, applyTheme } from './lib/theme.js'
 import { fmtFull, todayKey } from './lib/date.js'
 import { lunarInfo } from './lib/lunar.js'
+import { setupStatusBar } from './lib/native.js'
 
 const TABS = [
   { id: 'today', ic: '☀️', label: '今日' },
@@ -23,6 +24,10 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [toastMsg, setToastMsg] = useState('')
   const timer = useRef(null)
+
+  useEffect(() => {
+    setupStatusBar()
+  }, [])
 
   useEffect(() => {
     saveState(state)
