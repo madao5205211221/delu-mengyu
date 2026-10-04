@@ -22,6 +22,8 @@ export default function Memory({ state, update, toast }) {
   const [sel, setSel] = useState(null)
   const [limit, setLimit] = useState(30)
   const [showAdd, setShowAdd] = useState(false)
+  const [pickYear, setPickYear] = useState(false)
+  const [pickMonth, setPickMonth] = useState(false)
 
   const byDate = useMemo(() => {
     const map = {}
@@ -103,8 +105,13 @@ export default function Memory({ state, update, toast }) {
           <button className="icon-btn" onClick={() => shiftMonth(-1)}>
             ‹
           </button>
-          <div style={{ fontWeight: 600 }}>
-            {year} 年 {month + 1} 月
+          <div className="cal-title">
+            <button className="cal-part" onClick={() => setPickYear(true)}>
+              {year} 年
+            </button>
+            <button className="cal-part" onClick={() => setPickMonth(true)}>
+              {month + 1} 月
+            </button>
           </div>
           <button className="icon-btn" onClick={() => shiftMonth(1)}>
             ›
@@ -118,12 +125,17 @@ export default function Memory({ state, update, toast }) {
           ))}
           {cells.map((k, i) => {
             if (!k) return <div className="cal-cell empty" key={i} />
-            const m = byDate[k] ? topMood(byDate[k]) : null
+            const list = byDate[k]
+            const m = list ? topMood(list) : null
             return (
               <button
                 key={k}
                 className={
-                  'cal-cell' + (k === today ? ' today' : '') + (k === sel ? ' sel' : '')
+                  'cal-cell' +
+                  (k === today ? ' today' : '') +
+                  (k === sel ? ' sel' : '') +
+                  (list ? ' has' : '') +
+                  (m ? ' has-mood' : '')
                 }
                 onClick={() => setSel(k === sel ? null : k)}
               >
@@ -192,6 +204,12 @@ export default function Memory({ state, update, toast }) {
         </button>
       </div>
 
+      {sel && (
+        <button className="btn" style={{ width: '100%', marginBottom: 10 }} onClick={() => setShowAdd(true)}>
+          给 {fmtShort(sel)} 记一笔
+        </button>
+      )}
+
       {state.entries.length === 0 && (
         <div className="card">
           <div className="empty">还没有回忆。今天记下第一笔吧</div>
@@ -233,13 +251,99 @@ export default function Memory({ state, update, toast }) {
         </button>
       )}
 
-      {showAdd && <PastSheet onClose={() => setShowAdd(false)} onCreate={addPast} toast={toast} />}
+      {showAdd && (
+        <PastSheet
+          defaultDate={sel || todayKey()}
+          onClose={() => setShowAdd(false)}
+          onCreate={addPast}
+          toast={toast}
+        />
+      )}
+
+      {pickYear && (
+        <YearSheet
+          year={year}
+          entries={state.entries}
+          onClose={() => setPickYear(false)}
+          onPick={(y) => {
+            setYear(y)
+            setSel(null)
+            setPickYear(false)
+          }}
+        />
+      )}
+
+      {pickMonth && (
+        <MonthSheet
+          month={month}
+          onClose={() => setPickMonth(false)}
+          onPick={(m) => {
+            setMonth(m)
+            setSel(null)
+            setPickMonth(false)
+          }}
+        />
+      )}
     </div>
   )
 }
 
-function PastSheet({ onClose, onCreate, toast }) {
-  const [date, setDate] = useState(todayKey())
+function YearSheet({ year, entries, onClose, onPick }) {
+  const nowYear = new Date().getFullYear()
+  const counts = {}
+  entries.forEach((e) => {
+    const y = parseKey(e.date).getFullYear()
+    counts[y] = (counts[y] || 0) + 1
+  })
+  const years = Object.keys(counts).map(Number)
+  const minYear = years.length ? Math.min(...years) : nowYear
+  const start = Math.min(minYear, year, nowYear)
+  const list = []
+  for (let y = nowYear; y >= start; y--) list.push(y)
+
+  return (
+    <Sheet title="选年份" onClose={onClose}>
+      <div className="pick-grid">
+        {list.map((y) => (
+          <button
+            key={y}
+            className={'pick-cell' + (y === year ? ' on' : '')}
+            onClick={() => onPick(y)}
+          >
+            {y}
+            <span className="cnt">{counts[y] ? counts[y] + ' 条' : '—'}</span>
+          </button>
+        ))}
+      </div>
+      {list.length > 30 && (
+        <div className="hint" style={{ marginTop: 10, textAlign: 'center' }}>
+          共 {list.length} 年，往下翻
+        </div>
+      )}
+    </Sheet>
+  )
+}
+
+function MonthSheet({ month, onClose, onPick }) {
+  return (
+    <Sheet title="选月份" onClose={onClose}>
+      <div className="pick-grid">
+        {Array.from({ length: 12 }, (_, i) => (
+          <button
+            key={i}
+            className={'pick-cell' + (i === month ? ' on' : '')}
+            onClick={() => onPick(i)}
+          >
+            {i + 1} 月
+          </button>
+        ))}
+      </div>
+    </Sheet>
+  )
+}
+
+function PastSheet({ defaultDate, onClose, onCreate, toast }) {
+  const [date, setDate] = useState(defaultDate || todayKey())
   const [text, setText] = useState('')
   const [mood, setMood] = useState(null)
   return (

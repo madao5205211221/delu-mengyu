@@ -23,6 +23,26 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* 关键：整页禁止横向滚动。心情栏这类横向滑动的元素自己滚，不带动页面 */
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* 宽内容一律不能把父级撑开，否则右侧会被切掉、底部导航会缺一格 */
+.card,
+.page,
+.topbar,
+.row,
+.goal,
+.anni,
+.entry,
+.note-card,
+.idea {
+  min-width: 0;
+}
+
+.page {
+  max-width: 100%;
 }
 
 body {
@@ -54,6 +74,7 @@ textarea {
 .app {
   max-width: 480px;
   margin: 0 auto;
+  width: 100%;
   min-height: 100vh;
   background: var(--paper);
   position: relative;
@@ -102,15 +123,18 @@ textarea {
 
 .page {
   padding: 16px 18px 24px;
+  overflow-x: clip;
 }
 
-/* 卡片 */
+/* 卡片 —— overflow 不能用 hidden，否则心情栏滑不动；宽度必须能收缩 */
 .card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
   margin-bottom: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .card-title {
@@ -146,15 +170,26 @@ textarea {
   color: var(--ink-3);
 }
 
+/* 心情栏：必须能横向滑动，且绝不允许把卡片/页面撑宽。
+   overflow-x:auto 要真正生效，元素自身得有确定宽度 —— 用 width:100% 跟随卡片，
+   再用 contain 把内部滚动与外部布局彻底隔离。 */
 .mood-row {
   display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
   overflow-x: auto;
-  padding-top: 4px;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  width: 100%;
+  max-width: 100%;
   border-top: 1px dashed var(--line);
   margin-top: 8px;
   padding-top: 10px;
+  padding-bottom: 2px;
   scrollbar-width: none;
+  /* 阻止内部超宽内容影响外层布局计算 */
+  contain: inline-size layout;
 }
 
 .mood-row::-webkit-scrollbar {
@@ -163,6 +198,7 @@ textarea {
 
 .mood-chip {
   flex: 0 0 auto;
+  white-space: nowrap;
   padding: 5px 10px;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -360,8 +396,9 @@ textarea {
 
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
+  width: 100%;
 }
 
 .cal-wd {
@@ -372,7 +409,10 @@ textarea {
 }
 
 .cal-cell {
+  position: relative;
   aspect-ratio: 1;
+  min-width: 0;
+  width: 100%;
   border-radius: 9px;
   display: flex;
   flex-direction: column;
@@ -382,6 +422,27 @@ textarea {
   color: var(--ink-2);
   border: 1px solid transparent;
   background: transparent;
+  overflow: hidden;
+  padding: 0;
+  line-height: 1.1;
+}
+
+/* 有内容的日子加个小点，便于一眼找到 */
+.cal-cell.has::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--clay);
+  opacity: 0.75;
+}
+
+.cal-cell.has-mood::after {
+  display: none;
 }
 
 .cal-cell.empty {
@@ -647,6 +708,118 @@ textarea {
   color: var(--green);
   font-weight: 600;
   border: 1px solid var(--line);
+}
+
+/* 日历标题：年月可点 */
+.cal-title {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal-part {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.cal-part:active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+/* 选年 / 选月 */
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pick-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.pick-cell .cnt {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.pick-cell.on {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.pick-cell.on .cnt {
+  color: var(--green);
+}
+
+/* 笔记本卡片 */
+.note-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--clay);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.note-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-done {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+
+.note-prev {
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+/* 分段里的计数 */
+.seg-cnt {
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-left: 5px;
+}
+
+.seg-btn.on .seg-cnt {
+  color: var(--green);
 }
 
 /* 配色选择 */

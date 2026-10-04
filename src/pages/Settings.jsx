@@ -10,7 +10,7 @@ import { todayKey } from '../lib/date.js'
 export default function Settings({ state, update, onClose, toast, theme, setTheme }) {
   const fileRef = useRef(null)
   const [confirming, setConfirming] = useState(false)
-  const [panel, setPanel] = useState('backup')
+  const [panel, setPanel] = useState('theme')
 
   const doExport = async () => {
     const text = exportText(state)
@@ -71,16 +71,16 @@ export default function Settings({ state, update, onClose, toast, theme, setThem
     <Sheet title={panel === 'theme' ? '换个配色' : '设置与备份'} onClose={onClose}>
       <div className="seg">
         <button
-          className={'seg-btn' + (panel === 'backup' ? ' on' : '')}
-          onClick={() => setPanel('backup')}
-        >
-          备份
-        </button>
-        <button
           className={'seg-btn' + (panel === 'theme' ? ' on' : '')}
           onClick={() => setPanel('theme')}
         >
           配色
+        </button>
+        <button
+          className={'seg-btn' + (panel === 'backup' ? ' on' : '')}
+          onClick={() => setPanel('backup')}
+        >
+          备份
         </button>
       </div>
 
