@@ -11,6 +11,7 @@ android {
         release {
             if (keystoreProps['storeFile']) {
                 storeFile file(keystoreProps['storeFile'])
+                storeType(keystoreProps['storeType'] ?: 'PKCS12')
                 storePassword keystoreProps['storePassword']
                 keyAlias keystoreProps['keyAlias']
                 keyPassword keystoreProps['keyPassword']

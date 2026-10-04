@@ -46,9 +46,11 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/delu-mengyu.jks
-            printf 'storeFile=delu-mengyu.jks\nstorePassword=delu-mengyu2026\nkeyAlias=delumengyu\nkeyPassword=delu-mengyu2026\n' > android/keystore.properties
-            echo "已配置正式签名"
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/app/delu-mengyu.p12
+            printf 'storeFile=delu-mengyu.p12\nstoreType=PKCS12\nstorePassword=delu-mengyu2026\nkeyAlias=delumengyu\nkeyPassword=delu-mengyu2026\n' > android/keystore.properties
+            echo "已配置正式签名，密钥校验值："
+            md5sum android/app/delu-mengyu.p12
+            ls -l android/app/delu-mengyu.p12
           else
             echo "没有密钥，退回调试签名"
           fi
