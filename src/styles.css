@@ -107,6 +107,10 @@ textarea {
   letter-spacing: 0;
   font-weight: 400;
   margin-top: 1px;
+  min-width: 0;
+  max-width: 62vw;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .icon-btn {
@@ -899,4 +903,312 @@ textarea {
   z-index: 80;
   max-width: 80%;
   text-align: center;
+}
+
+/* ===== 农历 / 节日 ===== */
+
+/* 日历格里的农历小字 */
+.cal-cell .lunar {
+  font-size: 9px;
+  line-height: 1.05;
+  color: var(--ink-3);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-cell .lunar.red {
+  color: var(--clay);
+  font-weight: 600;
+}
+
+/* 有节日的日子给个淡底，一眼能扫到 */
+.cal-cell.fest {
+  background: var(--clay-soft);
+}
+
+.cal-cell.sel.fest {
+  background: var(--green-soft);
+}
+
+/* 纪念日名后面的「农历」小标 */
+.lunar-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--clay);
+  background: var(--clay-soft);
+  padding: 1px 6px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+/* 表单里显示当天农历/节日 */
+.lunar-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -2px 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  font-size: 12px;
+}
+
+.lunar-note .ln-main {
+  color: var(--ink-2);
+}
+
+.lunar-note .ln-fest {
+  color: var(--clay);
+  font-weight: 600;
+  background: var(--clay-soft);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+/* ===== 选年份 ===== */
+
+.decade-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.decade-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pick-jump {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* ===== 选月份 · 迷你月历 ===== */
+
+.mini-months {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 56vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  align-content: start;
+}
+
+.mini-month {
+  display: block;
+  text-align: left;
+  padding: 8px 10px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  min-width: 0;
+  align-self: start;
+  height: fit-content;
+}
+
+.mini-month.on {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  min-height: 16px;
+}
+
+.mini-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mini-cnt {
+  font-size: 10px;
+  color: var(--clay);
+  background: var(--clay-soft);
+  padding: 0 6px;
+  border-radius: 999px;
+}
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  justify-items: center;
+}
+
+.mini-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.mini-dot.has {
+  background: var(--clay);
+  box-shadow: 0 0 0 2px var(--clay-soft);
+}
+
+.mini-dot.blank {
+  background: transparent;
+}
+
+.mini-moods {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+  min-height: 13px;
+  font-size: 10px;
+  line-height: 13px;
+}
+
+/* ===== 笔记本卡片 ===== */
+
+.note-card.open {
+  border-left-color: var(--green);
+}
+
+.note-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.note-head .note-title {
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-arrow {
+  flex: 0 0 auto;
+  font-size: 14px;
+  color: var(--ink-3);
+  transition: transform 0.18s ease;
+  line-height: 1;
+}
+
+.note-arrow.up {
+  transform: rotate(180deg);
+}
+
+.note-body {
+  cursor: pointer;
+}
+
+.note-edit {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.75;
+  font-size: 14px;
+  color: var(--ink);
+  font-family: inherit;
+  min-width: 0;
+}
+
+.note-edit:focus {
+  border-color: var(--green);
+}
+
+.note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.note-foot .hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+/* ===== 按钮补充 ===== */
+
+.btn.sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.btn.danger {
+  color: #b4453a;
+  border: 1px solid #e6c3bd;
+  background: #fbf0ee;
+}
+
+.btn.danger:active {
+  background: #f6e2de;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+}
+
+.quick-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.quick-foot .hint {
+  min-width: 0;
+}
+
+/* 心情胶囊横向滚动（10 个表情要能划到底） */
+.mood-row {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  contain: inline-size layout;
+  scrollbar-width: none;
+}
+
+.mood-row::-webkit-scrollbar {
+  display: none;
 }

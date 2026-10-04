@@ -3,6 +3,7 @@ import MoodPicker from '../components/MoodPicker.jsx'
 import Sheet from '../components/Sheet.jsx'
 import { getMood } from '../lib/moods.js'
 import { uid } from '../lib/storage.js'
+import { lunarInfo } from '../lib/lunar.js'
 import { todayKey, weekdayCN, fmtShort, monthGrid, parseKey } from '../lib/date.js'
 
 function topMood(list) {
@@ -127,6 +128,8 @@ export default function Memory({ state, update, toast }) {
             if (!k) return <div className="cal-cell empty" key={i} />
             const list = byDate[k]
             const m = list ? topMood(list) : null
+            const d = parseKey(k)
+            const li = lunarInfo(d.getFullYear(), d.getMonth() + 1, d.getDate())
             return (
               <button
                 key={k}
@@ -135,12 +138,16 @@ export default function Memory({ state, update, toast }) {
                   (k === today ? ' today' : '') +
                   (k === sel ? ' sel' : '') +
                   (list ? ' has' : '') +
-                  (m ? ' has-mood' : '')
+                  (m ? ' has-mood' : '') +
+                  (li.isFestival ? ' fest' : '')
                 }
                 onClick={() => setSel(k === sel ? null : k)}
               >
-                <span>{parseKey(k).getDate()}</span>
-                <span className="em">{m ? m.emoji : ''}</span>
+                <span className="num">{d.getDate()}</span>
+                <span className={'lunar' + (li.isFestival ? ' red' : '')}>
+                  {li.short}
+                </span>
+                {m && <span className="em">{m.emoji}</span>}
               </button>
             )
           })}
@@ -275,7 +282,9 @@ export default function Memory({ state, update, toast }) {
 
       {pickMonth && (
         <MonthSheet
+          year={year}
           month={month}
+          byDate={byDate}
           onClose={() => setPickMonth(false)}
           onPick={(m) => {
             setMonth(m)
@@ -297,12 +306,32 @@ function YearSheet({ year, entries, onClose, onPick }) {
   })
   const years = Object.keys(counts).map(Number)
   const minYear = years.length ? Math.min(...years) : nowYear
-  const start = Math.min(minYear, year, nowYear)
+  // 可回溯到 1900（农历表下界），保证能记小时候的事
+  const start = Math.min(minYear, year, nowYear, 1990)
+
+  const [decade, setDecade] = useState(() => Math.floor(year / 10) * 10)
   const list = []
-  for (let y = nowYear; y >= start; y--) list.push(y)
+  for (let y = decade + 9; y >= decade; y--) {
+    if (y > nowYear + 5) continue
+    list.push(y)
+  }
 
   return (
     <Sheet title="选年份" onClose={onClose}>
+      <div className="decade-row">
+        <button className="icon-btn" onClick={() => setDecade(decade - 10)}>
+          ‹
+        </button>
+        <div className="decade-label">{decade} — {decade + 9}</div>
+        <button
+          className="icon-btn"
+          onClick={() => setDecade(decade + 10)}
+          disabled={decade + 10 > nowYear + 10}
+        >
+          ›
+        </button>
+      </div>
+
       <div className="pick-grid">
         {list.map((y) => (
           <button
@@ -311,32 +340,87 @@ function YearSheet({ year, entries, onClose, onPick }) {
             onClick={() => onPick(y)}
           >
             {y}
-            <span className="cnt">{counts[y] ? counts[y] + ' 条' : '—'}</span>
+            <span className="cnt">
+              {counts[y] ? counts[y] + ' 条' : '—'}
+            </span>
           </button>
         ))}
       </div>
-      {list.length > 30 && (
-        <div className="hint" style={{ marginTop: 10, textAlign: 'center' }}>
-          共 {list.length} 年，往下翻
-        </div>
-      )}
+
+      <div className="pick-jump">
+        <button className="btn sm ghost" onClick={() => setDecade(Math.floor(nowYear / 10) * 10)}>
+          回到今年
+        </button>
+        <button
+          className="btn sm ghost"
+          onClick={() => setDecade(Math.floor(Math.min(start, 1900) / 10) * 10)}
+        >
+          最早
+        </button>
+      </div>
+      <div className="hint" style={{ marginTop: 8, textAlign: 'center' }}>
+        最早可记到 1900 年
+      </div>
     </Sheet>
   )
 }
 
-function MonthSheet({ month, onClose, onPick }) {
+// 月份面板：每个月一个迷你月历，能看到哪天记了东西
+function MonthSheet({ year, month, byDate, onClose, onPick }) {
+  const months = Array.from({ length: 12 }, (_, i) => i)
+
   return (
-    <Sheet title="选月份" onClose={onClose}>
-      <div className="pick-grid">
-        {Array.from({ length: 12 }, (_, i) => (
-          <button
-            key={i}
-            className={'pick-cell' + (i === month ? ' on' : '')}
-            onClick={() => onPick(i)}
-          >
-            {i + 1} 月
-          </button>
-        ))}
+    <Sheet title={`${year} 年 · 选月份`} onClose={onClose}>
+      <div className="mini-months">
+        {months.map((m) => {
+          const cells = monthGrid(year, m)
+          let count = 0
+          cells.forEach((k) => {
+            if (k && byDate[k]) count += byDate[k].length
+          })
+          const moods = {}
+          cells.forEach((k) => {
+            if (!k || !byDate[k]) return
+            const mo = topMood(byDate[k])
+            if (mo) moods[mo.id] = true
+          })
+          const moodList = Object.keys(moods).map(getMood).filter(Boolean)
+
+          return (
+            <button
+              key={m}
+              className={'mini-month' + (m === month ? ' on' : '')}
+              onClick={() => onPick(m)}
+            >
+              <div className="mini-head">
+                <span className="mini-name">{m + 1} 月</span>
+                {count > 0 && <span className="mini-cnt">{count}</span>}
+              </div>
+              <div className="mini-grid">
+                {cells.map((k, i) => {
+                  if (!k) return <i key={i} className="mini-dot blank" />
+                  const list = byDate[k]
+                  const mo = list ? topMood(list) : null
+                  return (
+                    <i
+                      key={i}
+                      className={'mini-dot' + (list ? ' has' : '')}
+                      style={mo ? { background: mo.color } : null}
+                    />
+                  )
+                })}
+              </div>
+              <div className="mini-moods">
+                {moodList.slice(0, 4).map((mo) => (
+                  <span key={mo.id}>{mo.emoji}</span>
+                ))}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <div className="hint" style={{ marginTop: 10, textAlign: 'center' }}>
+        色块是有记录的日子，颜色对应那天的心情
       </div>
     </Sheet>
   )
@@ -346,12 +430,30 @@ function PastSheet({ defaultDate, onClose, onCreate, toast }) {
   const [date, setDate] = useState(defaultDate || todayKey())
   const [text, setText] = useState('')
   const [mood, setMood] = useState(null)
+
+  const d = date ? parseKey(date) : null
+  const li = d ? lunarInfo(d.getFullYear(), d.getMonth() + 1, d.getDate()) : null
+
   return (
     <Sheet title="补记一天" onClose={onClose}>
       <div className="field">
         <label>哪一天</label>
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <input
+          type="date"
+          value={date}
+          min="1900-01-01"
+          max="2100-12-31"
+          onChange={(e) => setDate(e.target.value)}
+        />
       </div>
+
+      {li && (
+        <div className="lunar-note">
+          <span className="ln-main">{li.full}</span>
+          {li.isFestival && <span className="ln-fest">{li.festivals.join(' · ')}</span>}
+        </div>
+      )}
+
       <div className="field">
         <label>记了什么</label>
         <textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} />

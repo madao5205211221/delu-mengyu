@@ -1,13 +1,12 @@
-import React, { useState } from 'react'
-import Sheet from '../components/Sheet.jsx'
+import React, { useState, useRef, useEffect } from 'react'
 import { uid } from '../lib/storage.js'
 
 // 灵感分两类：
-// - spark 闪念：一句话，看一眼就懂（原来是唯一的形态）
-// - note  笔记本：成篇的想法，比如「想写一本小说」，能一直往下写
+// - spark 闪念：一句话，看一眼就懂
+// - note  笔记本：成篇的想法，点开就地写，不在弹窗里写
 const KINDS = [
   { id: 'spark', label: '闪念', hint: '一句话，想到就记' },
-  { id: 'note', label: '笔记本', hint: '成篇的想法，能慢慢写' },
+  { id: 'note', label: '笔记本', hint: '想写的东西，慢慢写' },
 ]
 
 function fmtDay(ts) {
@@ -21,45 +20,31 @@ function preview(text, n = 60) {
   return t.length > n ? t.slice(0, n) + '…' : t
 }
 
+function titleOf(text) {
+  const first = String(text || '').split('\n')[0].trim()
+  return first ? first.slice(0, 30) : '无题'
+}
+
 export default function Idea({ state, update, toast }) {
   const [tab, setTab] = useState('spark')
-  const [text, setText] = useState('')
+  const [draft, setDraft] = useState('')
   const [openId, setOpenId] = useState(null)
+  const [editId, setEditId] = useState(null)
 
   const items = state.ideas.filter((i) => (i.kind || 'spark') === tab)
-  const open = openId ? state.ideas.find((i) => i.id === openId) : null
+  const kindInfo = KINDS.find((k) => k.id === tab)
 
   const add = () => {
-    const t = text.trim()
+    const t = draft.trim()
     if (!t) return
-    if (tab === 'note') {
-      const id = uid()
-      update((s) => ({
-        ...s,
-        ideas: [
-          {
-            id,
-            kind: 'note',
-            title: t.split('\n')[0].slice(0, 30),
-            text: t,
-            done: false,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-          ...s.ideas,
-        ],
-      }))
-      setText('')
-      setOpenId(id)
-      toast('开了一本')
-      return
-    }
+    const id = uid()
     update((s) => ({
       ...s,
       ideas: [
         {
-          id: uid(),
-          kind: 'spark',
+          id,
+          kind: tab,
+          title: tab === 'note' ? titleOf(t) : '',
           text: t,
           done: false,
           createdAt: Date.now(),
@@ -68,7 +53,14 @@ export default function Idea({ state, update, toast }) {
         ...s.ideas,
       ],
     }))
-    setText('')
+    setDraft('')
+    if (tab === 'spark') {
+      toast('记下了')
+    } else {
+      setOpenId(id)
+      setEditId(id)
+      toast('记下了，接着写')
+    }
   }
 
   const toggle = (id) =>
@@ -82,6 +74,8 @@ export default function Idea({ state, update, toast }) {
   const del = (id) => {
     update((s) => ({ ...s, ideas: s.ideas.filter((i) => i.id !== id) }))
     if (openId === id) setOpenId(null)
+    if (editId === id) setEditId(null)
+    toast('删了')
   }
 
   const saveNote = (id, patch) =>
@@ -92,10 +86,7 @@ export default function Idea({ state, update, toast }) {
           ? {
               ...i,
               ...patch,
-              title:
-                patch.text !== undefined
-                  ? patch.text.split('\n')[0].slice(0, 30) || '无题'
-                  : i.title,
+              title: patch.text !== undefined ? titleOf(patch.text) : i.title,
               updatedAt: Date.now(),
             }
           : i
@@ -104,7 +95,6 @@ export default function Idea({ state, update, toast }) {
 
   const active = items.filter((i) => !i.done)
   const done = items.filter((i) => i.done)
-  const kindInfo = KINDS.find((k) => k.id === tab)
 
   return (
     <div className="page">
@@ -113,7 +103,12 @@ export default function Idea({ state, update, toast }) {
           <button
             key={k.id}
             className={'seg-btn' + (tab === k.id ? ' on' : '')}
-            onClick={() => setTab(k.id)}
+            onClick={() => {
+              setTab(k.id)
+              setDraft('')
+              setEditId(null)
+              setOpenId(null)
+            }}
           >
             {k.label}
             <span className="seg-cnt">
@@ -125,10 +120,14 @@ export default function Idea({ state, update, toast }) {
 
       <div className="card">
         <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           placeholder={
-            tab === 'spark' ? '突然想到的，先扔进来…' : '想写的东西，第一行当标题…'
+            tab === 'spark'
+              ? '突然想到的，先扔进来…'
+              : openId || editId
+              ? '继续写…'
+              : '想写点什么，第一行当标题…'
           }
           style={{
             width: '100%',
@@ -142,8 +141,8 @@ export default function Idea({ state, update, toast }) {
         />
         <div className="quick-foot">
           <span className="hint">{kindInfo.hint}</span>
-          <button className="btn" onClick={add} disabled={!text.trim()}>
-            {tab === 'spark' ? '扔进来' : '开写'}
+          <button className="btn" onClick={add} disabled={!draft.trim()}>
+            记下
           </button>
         </div>
       </div>
@@ -197,16 +196,29 @@ export default function Idea({ state, update, toast }) {
       ) : (
         <>
           {items.map((i) => (
-            <button className="note-card" key={i.id} onClick={() => setOpenId(i.id)}>
-              <div className="note-title">
-                {i.title || '无题'}
-                {i.done && <span className="note-done">已完</span>}
-              </div>
-              <div className="note-prev">{preview(i.text) || '（空的）'}</div>
-              <div className="meta">
-                {i.text.trim().length} 字 · 改于 {fmtDay(i.updatedAt || i.createdAt)}
-              </div>
-            </button>
+            <NoteCard
+              key={i.id}
+              note={i}
+              open={openId === i.id}
+              editing={editId === i.id}
+              onToggleOpen={() => {
+                const next = openId === i.id ? null : i.id
+                setOpenId(next)
+                setEditId(next)
+              }}
+              onStartEdit={() => {
+                setOpenId(i.id)
+                setEditId(i.id)
+              }}
+              onStopEdit={() => setEditId(null)}
+              onSave={(text) => saveNote(i.id, { text })}
+              onToggleDone={() => {
+                saveNote(i.id, {})
+                toggle(i.id)
+              }}
+              onDelete={() => del(i.id)}
+              toast={toast}
+            />
           ))}
         </>
       )}
@@ -214,84 +226,94 @@ export default function Idea({ state, update, toast }) {
       <div className="hint" style={{ textAlign: 'center', marginTop: 18 }}>
         灵感不进回忆录，一直留着
       </div>
-
-      {open && (
-        <NoteSheet
-          note={open}
-          onSave={saveNote}
-          onDelete={del}
-          onClose={() => setOpenId(null)}
-          toast={toast}
-        />
-      )}
     </div>
   )
 }
 
-function NoteSheet({ note, onSave, onDelete, onClose, toast }) {
+// 卡片：收起时看摘要，点开就地变输入框直接写
+function NoteCard({ note, open, editing, onToggleOpen, onStartEdit, onStopEdit, onSave, onToggleDone, onDelete, toast }) {
   const [text, setText] = useState(note.text || '')
   const [confirmDel, setConfirmDel] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    setText(note.text || '')
+  }, [note.id])
+
+  useEffect(() => {
+    if (editing && ref.current) {
+      const el = ref.current
+      el.focus()
+      el.setSelectionRange(el.value.length, el.value.length)
+    }
+  }, [editing])
+
+  const save = () => {
+    if (text.trim() !== (note.text || '').trim()) {
+      onSave(text)
+      toast('存好了')
+    }
+    onStopEdit()
+  }
+
   const chars = text.trim().length
 
   return (
-    <Sheet title={note.done ? '这本写完了' : '写东西'} onClose={onClose}>
-      <div className="field">
-        <label>
-          内容　<span style={{ color: 'var(--ink-3)' }}>{chars} 字</span>
-        </label>
-        <textarea
-          rows={14}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="第一行当标题，后面随便写…"
-          style={{ lineHeight: 1.75 }}
-        />
-      </div>
+    <div className={'note-card' + (open ? ' open' : '')}>
+      <button className="note-head" onClick={onToggleOpen}>
+        <div className="note-title">
+          {note.title || '无题'}
+          {note.done && <span className="note-done">已完</span>}
+        </div>
+        <span className={'note-arrow' + (open ? ' up' : '')}>⌄</span>
+      </button>
 
-      <div className="sheet-foot">
-        <button className="btn ghost" onClick={onClose}>
-          关掉
-        </button>
-        <button
-          className="btn"
-          onClick={() => {
-            onSave(note.id, { text })
-            toast('存好了')
-            onClose()
-          }}
-        >
-          保存
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-        <button
-          className="btn ghost"
-          style={{ flex: 1 }}
-          onClick={() => {
-            onSave(note.id, { text, done: !note.done })
-            toast(note.done ? '又翻开了' : '标记完成')
-            onClose()
-          }}
-        >
-          {note.done ? '重新打开' : '标记写完'}
-        </button>
-        <button
-          className="btn danger"
-          style={{ flex: 1 }}
-          onClick={() => {
-            if (!confirmDel) {
-              setConfirmDel(true)
-              return
-            }
-            onDelete(note.id)
-            toast('删了')
-            onClose()
-          }}
-        >
-          {confirmDel ? '再点一次确认删除' : '删除'}
-        </button>
-      </div>
-    </Sheet>
+      {open ? (
+        <>
+          <textarea
+            ref={ref}
+            className="note-edit"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onFocus={onStartEdit}
+            rows={Math.min(24, Math.max(8, text.split('\n').length + 2))}
+            placeholder="想写什么就写…"
+          />
+          <div className="note-foot">
+            <span className="hint">
+              {chars} 字 · 改于 {fmtDay(note.updatedAt || note.createdAt)}
+            </span>
+            <button className="btn sm" onClick={save}>
+              记下
+            </button>
+          </div>
+          <div className="note-actions">
+            <button className="btn sm ghost" onClick={onToggleDone}>
+              {note.done ? '重新打开' : '标记写完'}
+            </button>
+            <button
+              className="btn sm danger"
+              onClick={() => {
+                if (!confirmDel) {
+                  setConfirmDel(true)
+                  setTimeout(() => setConfirmDel(false), 3000)
+                  return
+                }
+                onDelete()
+              }}
+            >
+              {confirmDel ? '再点一次确认' : '删除'}
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="note-body" onClick={onToggleOpen}>
+          <div className="note-prev">{preview(note.text) || '（空的）'}</div>
+          <div className="meta">
+            {chars} 字 · 改于 {fmtDay(note.updatedAt || note.createdAt)}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

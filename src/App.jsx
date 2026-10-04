@@ -7,6 +7,7 @@ import Settings from './pages/Settings.jsx'
 import { loadState, saveState } from './lib/storage.js'
 import { loadTheme, saveTheme, applyTheme } from './lib/theme.js'
 import { fmtFull, todayKey } from './lib/date.js'
+import { lunarInfo } from './lib/lunar.js'
 
 const TABS = [
   { id: 'today', ic: '☀️', label: '今日' },
@@ -34,6 +35,12 @@ export default function App() {
 
   const update = (fn) => setState((prev) => fn(prev))
 
+  const t = new Date()
+  const todayLunar = lunarInfo(t.getFullYear(), t.getMonth() + 1, t.getDate())
+  const lunarLine = todayLunar
+    ? todayLunar.full + (todayLunar.isFestival ? ` · ${todayLunar.festivals.join(' · ')}` : '')
+    : ''
+
   const toast = (msg) => {
     setToastMsg(msg)
     clearTimeout(timer.current)
@@ -45,7 +52,10 @@ export default function App() {
       <div className="topbar">
         <div>
           <h1>得鹿梦鱼</h1>
-          <div className="sub">{fmtFull(todayKey()).replace(' 周', ' 星期')}</div>
+          <div className="sub">
+            {fmtFull(todayKey()).replace(' 周', ' 星期')}
+            {lunarLine && ` · ${lunarLine}`}
+          </div>
         </div>
         <button className="icon-btn" onClick={() => setShowSettings(true)}>
           ⚙
