@@ -8,4 +8,6 @@ android/app/build
 android/.gradle
 android/local.properties
 capacitor-cordova-android-plugins/build
+android/app/capacitor.build.gradle
+android/capacitor.settings.gradle
 *.log

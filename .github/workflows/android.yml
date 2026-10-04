@@ -38,6 +38,31 @@ jobs:
       - name: 缓存 Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: 校验包名一致性
+        run: |
+          set -e
+          APPID=$(node -p "require('./capacitor.config.json').appId")
+          echo "capacitor.config.json appId = $APPID"
+          NS=$(grep -oP 'namespace\s*=\s*"\K[^"]+' android/app/build.gradle | head -1)
+          echo "build.gradle namespace   = $NS"
+          PKG=$(grep -oP '^package\s+\K[^;]+' android/app/src/main/java/*/*/*/MainActivity.java | head -1)
+          echo "MainActivity package     = $PKG"
+          DIR=$(find android/app/src/main/java -name MainActivity.java | sed 's|.*/java/||; s|/MainActivity.java||; s|/|.|g')
+          echo "MainActivity 所在目录     = $DIR"
+          if [ "$APPID" != "$NS" ] || [ "$APPID" != "$PKG" ] || [ "$APPID" != "$DIR" ]; then
+            echo "❌ 包名不一致，装到手机上会闪退（ClassNotFoundException）"
+            exit 1
+          fi
+          echo "✅ 包名四处一致：$APPID"
+
+          ACT=$(tr '\n' ' ' < android/app/src/main/AndroidManifest.xml | grep -oP '<activity[^>]*android:name="\K[^"]+' | head -1)
+          echo "Manifest 启动 Activity  = $ACT"
+          case "$ACT" in
+            .MainActivity) echo "✅ 相对写法，自动解析为 $APPID.MainActivity" ;;
+            "$APPID.MainActivity") echo "✅ 全名写法，与包名一致" ;;
+            *) echo "❌ Manifest 里的启动 Activity 指向 $ACT，与 $APPID.MainActivity 不符，会闪退"; exit 1 ;;
+          esac
+
       - name: 赋予 gradlew 执行权限
         run: chmod +x android/gradlew
 

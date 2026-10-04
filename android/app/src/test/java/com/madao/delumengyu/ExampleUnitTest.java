@@ -1,4 +1,4 @@
-package com.getcapacitor.myapp;
+package com.madao.delumengyu;
 
 import static org.junit.Assert.*;
 
