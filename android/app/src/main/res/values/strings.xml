@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">得鹿梦鱼</string>
+    <string name="title_activity_main">得鹿梦鱼</string>
+    <string name="package_name">com.madao.delumengyu</string>
+    <string name="custom_url_scheme">com.madao.delumengyu</string>
+</resources>
